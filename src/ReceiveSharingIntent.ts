@@ -62,19 +62,10 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
     } else {
       ReceiveSharingIntent.getFileNames()
         .then((fileObject: any) => {
-          console.log('What is this file object', fileObject);
-          if (!fileObject) {
-            handler([]);
-            return;
-          }
           let files = Object.keys(fileObject).map((k) => fileObject[k]);
           handler(files);
         })
-        .catch((e: any) => {
-          const error =
-            e instanceof Error ? e : new Error('Failed to get shared files');
-          errorHandler(error);
-        });
+        .catch((e: any) => errorHandler(e));
     }
   }
 }
