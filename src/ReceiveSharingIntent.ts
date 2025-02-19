@@ -2,7 +2,7 @@ import type {
   IReceiveSharingIntent,
   IUtils,
 } from './ReceiveSharingIntent.interfaces';
-import { Platform, Linking, AppState, NativeModules } from 'react-native';
+import { Platform, Linking, NativeModules } from 'react-native';
 import Utils from './utils';
 
 const { ReceiveSharingIntent } = NativeModules;
@@ -62,10 +62,18 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
     } else {
       ReceiveSharingIntent.getFileNames()
         .then((fileObject: any) => {
+          if (!fileObject) {
+            handler([]);
+            return;
+          }
           let files = Object.keys(fileObject).map((k) => fileObject[k]);
           handler(files);
         })
-        .catch((e: any) => errorHandler(e));
+        .catch((e: any) => {
+          const error =
+            e instanceof Error ? e : new Error('Failed to get shared files');
+          errorHandler(error);
+        });
     }
   }
 }
