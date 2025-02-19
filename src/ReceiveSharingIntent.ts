@@ -62,6 +62,7 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
     } else {
       ReceiveSharingIntent.getFileNames()
         .then((fileObject: any) => {
+          console.log('What is this file object', fileObject);
           if (!fileObject) {
             handler([]);
             return;
