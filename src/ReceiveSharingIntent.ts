@@ -7,11 +7,16 @@ import Utils from './utils';
 
 const { ReceiveSharingIntent } = NativeModules;
 
+/**
+ * Documentation: Please read receivingSharing.ts in breakroom-mobile.
+ * Original documentation here was supposed to be from https://github.com/ajith-ab/react-native-receive-sharing-intent/blob/master/src/ReceiveSharingIntent.ts
+ * but it was not working for our case.
+ */
 class ReceiveSharingIntentModule implements IReceiveSharingIntent {
   private isIos: boolean = Platform.OS === 'ios';
   private utils: IUtils = new Utils();
-  private isClear: boolean = false;
-  private linkingSubscription: any = null; // Store the subscription
+  private linkingSubscription: any = null;
+  private initialUrlProcessed: boolean = false;
 
   getReceivedFiles(
     handler: Function,
@@ -19,37 +24,37 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
     protocol: string = 'ShareMedia'
   ) {
     if (this.isIos) {
-      Linking.getInitialURL()
-        .then((res: any) => {
-          if (res && res.startsWith(`${protocol}://dataUrl`) && !this.isClear) {
-            this.getFileNames(handler, errorHandler, res);
+      if (!this.initialUrlProcessed) {
+        Linking.getInitialURL()
+          .then((res: any) => {
+            if (res && res.startsWith(`${protocol}://dataUrl`)) {
+              console.log('PROCESSING INITIAL URL');
+              this.getFileNames(handler, errorHandler, res);
+              this.initialUrlProcessed = true;
+            }
+          })
+          .catch(() => {});
+      }
+
+      if (!this.linkingSubscription) {
+        console.log('CREATING LISTENER');
+        this.linkingSubscription = Linking.addEventListener(
+          'url',
+          (res: any) => {
+            const url = res ? res.url : '';
+            if (url.startsWith(`${protocol}://dataUrl`)) {
+              this.getFileNames(handler, errorHandler, res.url);
+            }
           }
-        })
-        .catch(() => {});
-      Linking.addEventListener('url', (res: any) => {
-        const url = res ? res.url : '';
-        if (url.startsWith(`${protocol}://dataUrl`) && !this.isClear) {
-          this.getFileNames(handler, errorHandler, res.url);
-        }
-      });
+        );
+      }
     } else {
       this.getFileNames(handler, errorHandler, '');
-      //     AppState.addEventListener('change', (status: string) => {
-      //         if (status === 'active' && !this.isClear) {
-      //             this.getFileNames(handler,errorHandler, "");
-      //         }
-      //       });
-      //    if(!this.isClear) this.getFileNames(handler,errorHandler, "");
     }
   }
 
   clearReceivedFiles() {
-    // this.isClear = true;
-    // Remove the Linking listener
-    if (this.linkingSubscription) {
-      this.linkingSubscription.remove();
-      this.linkingSubscription = null;
-    }
+    // Clear current processing URL so the same URL can be processed again
     ReceiveSharingIntent.clearFileNames();
   }
 
@@ -64,14 +69,20 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
           let files = this.utils.sortData(data);
           handler(files);
         })
-        .catch((e: any) => errorHandler(e));
+        .catch((e: any) => errorHandler(e))
+        .finally(ReceiveSharingIntent.clearFileNames);
     } else {
       ReceiveSharingIntent.getFileNames()
         .then((fileObject: any) => {
           let files = Object.keys(fileObject).map((k) => fileObject[k]);
           handler(files);
+          ReceiveSharingIntent.clearFileNames();
         })
-        .catch((e: any) => errorHandler(e));
+        .catch(errorHandler)
+        .finally(() => {
+          console.log('CLEARING');
+          ReceiveSharingIntent.clearFileNames();
+        });
     }
   }
 }
