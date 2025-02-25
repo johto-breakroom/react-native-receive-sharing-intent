@@ -11,13 +11,13 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
   private isIos: boolean = Platform.OS === 'ios';
   private utils: IUtils = new Utils();
   private isClear: boolean = false;
+  private linkingSubscription: any = null; // Store the subscription
 
   getReceivedFiles(
     handler: Function,
     errorHandler: Function,
     protocol: string = 'ShareMedia'
   ) {
-    console.log('RECEIVED FILES');
     if (this.isIos) {
       Linking.getInitialURL()
         .then((res: any) => {
@@ -44,7 +44,13 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
   }
 
   clearReceivedFiles() {
-    this.isClear = true;
+    // this.isClear = true;
+    // Remove the Linking listener
+    if (this.linkingSubscription) {
+      this.linkingSubscription.remove();
+      this.linkingSubscription = null;
+    }
+    ReceiveSharingIntent.clearFileNames();
   }
 
   protected getFileNames(
