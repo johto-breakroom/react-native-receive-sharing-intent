@@ -28,7 +28,6 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
         Linking.getInitialURL()
           .then((res: any) => {
             if (res && res.startsWith(`${protocol}://dataUrl`)) {
-              console.log('PROCESSING INITIAL URL');
               this.getFileNames(handler, errorHandler, res);
               this.initialUrlProcessed = true;
             }
@@ -37,7 +36,6 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
       }
 
       if (!this.linkingSubscription) {
-        console.log('CREATING LISTENER');
         this.linkingSubscription = Linking.addEventListener(
           'url',
           (res: any) => {
@@ -79,10 +77,7 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
           ReceiveSharingIntent.clearFileNames();
         })
         .catch(errorHandler)
-        .finally(() => {
-          console.log('CLEARING');
-          ReceiveSharingIntent.clearFileNames();
-        });
+        .finally(ReceiveSharingIntent.clearFileNames);
     }
   }
 }
