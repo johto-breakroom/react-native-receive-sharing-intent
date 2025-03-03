@@ -15,8 +15,6 @@ const { ReceiveSharingIntent } = NativeModules;
 class ReceiveSharingIntentModule implements IReceiveSharingIntent {
   private isIos: boolean = Platform.OS === 'ios';
   private utils: IUtils = new Utils();
-  private linkingSubscription: any = null;
-  private initialUrlProcessed: boolean = false;
 
   getReceivedFiles(
     handler: Function,
@@ -24,28 +22,20 @@ class ReceiveSharingIntentModule implements IReceiveSharingIntent {
     protocol: string = 'ShareMedia'
   ) {
     if (this.isIos) {
-      if (!this.initialUrlProcessed) {
-        Linking.getInitialURL()
-          .then((res: any) => {
-            if (res && res.startsWith(`${protocol}://dataUrl`)) {
-              this.getFileNames(handler, errorHandler, res);
-              this.initialUrlProcessed = true;
-            }
-          })
-          .catch(() => {});
-      }
-
-      if (!this.linkingSubscription) {
-        this.linkingSubscription = Linking.addEventListener(
-          'url',
-          (res: any) => {
-            const url = res ? res.url : '';
-            if (url.startsWith(`${protocol}://dataUrl`)) {
-              this.getFileNames(handler, errorHandler, res.url);
-            }
+      Linking.getInitialURL()
+        .then((res: any) => {
+          if (res && res.startsWith(`${protocol}://dataUrl`)) {
+            this.getFileNames(handler, errorHandler, res);
           }
-        );
-      }
+        })
+        .catch(() => {});
+
+      Linking.addEventListener('url', (res: any) => {
+        const url = res ? res.url : '';
+        if (url.startsWith(`${protocol}://dataUrl`)) {
+          this.getFileNames(handler, errorHandler, res.url);
+        }
+      });
     } else {
       this.getFileNames(handler, errorHandler, '');
     }
